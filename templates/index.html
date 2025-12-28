@@ -2,12 +2,21 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Coffee Kiosk - Live</title>
+  <title>Babbai Coffee House</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/style.css" />
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
-  <h1>Coffee Shop Live Dashboard</h1>
+  <header class="hero">
+    <div class="hero-inner">
+      <h1>Babbai Coffee House</h1>
+      <p class="tagline">Freshly brewed — friendly vibes — crafted for today</p>
+    </div>
+  </header>
+  <main>
   <section id="order-form">
     <h2>Create Order</h2>
     <label>Customer name: <input id="customer" /></label>
@@ -42,6 +51,25 @@
       </div>
     </div>
   </div>
+
+  <!-- Details modal for item info -->
+  <div id="details-modal" class="modal" aria-hidden="true" tabindex="-1" data-testid="details-modal">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="details-title">
+      <button class="modal-close" id="details-close" aria-label="Close dialog">×</button>
+      <div class="details-body" id="details-body">
+        <h2 id="details-title"></h2>
+        <p class="details-tags muted" id="details-tags"></p>
+        <p id="details-desc"></p>
+        <div id="details-sizes" class="muted"></div>
+        <div class="modal-actions">
+          <button id="details-cancel" class="btn btn-outline">Close</button>
+          <button id="details-customize" class="btn btn-primary">Customize</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </main>
 
   <script src="/static/js/app.js"></script>
 </body>

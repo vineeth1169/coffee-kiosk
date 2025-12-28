@@ -25,11 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const icon = (item.category && item.category.toLowerCase().includes('espresso')) ? '☕️' : '🥤';
     card.innerHTML = `
         <div class="card-header"><span class="icon">${icon}</span><h4>${item.name}</h4></div>
-        <p class="muted">${item.category}</p>
+        <p class="muted">${item.category} ${item.tags && item.tags.length ? ' · '+ item.tags.join(', ') : ''}</p>
         <div class="price">Starting at $${item.base_price.toFixed(2)}</div>
         <div class="card-actions">
           <button class="btn btn-outline quick-add" data-name="${item.name}">Add</button>
           <button class="btn btn-primary customize" data-name="${item.name}">Customize</button>
+          <button class="btn btn-info info" data-name="${item.name}">Info</button>
         </div>
       `;
       menuGrid.appendChild(card);
@@ -45,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Quick add handler (use base price, qty 1)
+  // Quick add / info / customize handlers
   menuGrid.addEventListener('click', (e) => {
     if (e.target.matches('.quick-add')) {
       const name = e.target.dataset.name;
@@ -57,6 +58,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const name = e.target.dataset.name;
       const item = menu.find(m => m.name === name);
       openCustomizeModal(item);
+    } else if (e.target.matches('.info')) {
+      const name = e.target.dataset.name;
+      const item = menu.find(m => m.name === name);
+      openDetailsModal(item);
     }
   });
 
@@ -66,6 +71,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalClose = document.getElementById('modal-close');
   const modalCancel = document.getElementById('modal-cancel');
   const modalAddBtn = document.getElementById('modal-add');
+  // Details modal elements
+  const detailsModal = document.getElementById('details-modal');
+  const detailsClose = document.getElementById('details-close');
+  const detailsCancel = document.getElementById('details-cancel');
+  const detailsCustomize = document.getElementById('details-customize');
+  const detailsTitle = document.getElementById('details-title');
+  const detailsTags = document.getElementById('details-tags');
+  const detailsDesc = document.getElementById('details-desc');
+  const detailsSizes = document.getElementById('details-sizes');
+
   let activeItem = null;
   let previouslyFocused = null;
 
@@ -137,6 +152,44 @@ document.addEventListener('DOMContentLoaded', () => {
   modalClose.addEventListener('click', closeModal);
   modalCancel.addEventListener('click', closeModal);
 
+  // Details modal handlers
+  function openDetailsModal(item){
+    if(!item) return;
+    activeItem = item;
+    detailsTitle.textContent = item.name;
+    detailsTags.textContent = item.tags && item.tags.length ? item.tags.join(' · ') : '';
+    detailsDesc.textContent = item.description || `A lovely ${item.category.toLowerCase()} crafted with care.`;
+    detailsSizes.textContent = item.sizes && item.sizes.length ? 'Sizes: ' + item.sizes.map(s => `${s.name} (+$${s.price.toFixed(2)})`).join(', ') : '';
+
+    previouslyFocused = document.activeElement;
+    detailsModal.classList.add('open');
+    detailsModal.setAttribute('aria-hidden','false');
+    detailsModal.focus();
+    const first = detailsModal.querySelector('button, a, input');
+    if(first) first.focus();
+  }
+
+  function closeDetails(){
+    detailsModal.classList.remove('open');
+    detailsModal.setAttribute('aria-hidden','true');
+    if(previouslyFocused && previouslyFocused.focus){ previouslyFocused.focus(); }
+    activeItem = null;
+  }
+
+  detailsClose.addEventListener('click', closeDetails);
+  detailsCancel.addEventListener('click', closeDetails);
+  detailsCustomize.addEventListener('click', () => {
+    if(activeItem){
+      closeDetails();
+      openCustomizeModal(activeItem);
+    }
+  });
+
+  // allow Esc / Enter key behavior on details modal
+  detailsModal.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape') { e.preventDefault(); closeDetails(); }
+    if(e.key === 'Enter') { e.preventDefault(); detailsCustomize.click(); }
+  });
   modalAddBtn.addEventListener('click', () => {
     if (!activeItem) return;
     // collect selections
