@@ -23,9 +23,36 @@ document.addEventListener('DOMContentLoaded', () => {
       const card = document.createElement('div');
       card.className = 'menu-card';
       const icon = (item.category && item.category.toLowerCase().includes('espresso')) ? '☕️' : '🥤';
-    card.innerHTML = `
-        <div class="card-header"><span class="icon">${icon}</span><h4>${item.name}</h4></div>
-        <p class="muted">${item.category} ${item.tags && item.tags.length ? ' · '+ item.tags.join(', ') : ''}</p>
+
+      // sizes (as selectable badges)
+      let sizesHtml = '';
+      if (item.sizes && item.sizes.length) {
+        item.sizes.forEach((sz, i) => {
+          const sel = i === 0 ? ' selected' : '';
+          sizesHtml += `<span class="badge${sel}" data-size="${sz.name}" data-price="${sz.price}">${sz.name}</span>`;
+        });
+        sizesHtml = `<div class="sizes" aria-hidden="true">${sizesHtml}</div>`;
+      }
+
+      // top modifiers (show up to 3 representative options as chips for quick discovery)
+      let modsHtml = '';
+      if (item.modifiers) {
+        // flatten first options from modifier groups
+        const flat = [];
+        Object.values(item.modifiers).forEach((arr) => {
+          if (Array.isArray(arr)) arr.forEach(o => flat.push(o));
+        });
+        flat.slice(0,3).forEach((m) => {
+          modsHtml += `<span class="chip" data-mod="${m.name}">${m.name}</span>`;
+        });
+        if (modsHtml) modsHtml = `<div class="mods">${modsHtml}</div>`;
+      }
+
+      card.innerHTML = `
+        <div class="card-header"><span class="icon">${icon}</span><div class="title-wrap"><h4>${item.name}</h4><div class="small-tag">${item.tags && item.tags.length ? item.tags.join(', ') : ''}</div></div></div>
+        <p class="muted">${item.category}</p>
+        ${sizesHtml}
+        ${modsHtml}
         <div class="price">Starting at $${item.base_price.toFixed(2)}</div>
         <div class="card-actions">
           <button class="btn btn-outline quick-add" data-name="${item.name}">Add</button>
@@ -33,6 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <button class="btn btn-info info" data-name="${item.name}">Info</button>
         </div>
       `;
+      // helpful for debugging/selection
+      card.dataset.name = item.name;
       menuGrid.appendChild(card);
     });
   }
@@ -46,13 +75,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Quick add / info / customize handlers
+  // Quick add / info / customize handlers (also handle badge/chip clicks)
   menuGrid.addEventListener('click', (e) => {
     if (e.target.matches('.quick-add')) {
       const name = e.target.dataset.name;
+      const btn = e.target;
+      const card = btn.closest('.menu-card');
       const item = menu.find(m => m.name === name);
-      if (!item) return;
-      cart.push({ name: item.name, qty: 1, opts: {}, total: item.base_price });
+      if (!item || !card) return;
+      // find selected size badge on the card
+      const sel = card.querySelector('.badge.selected');
+      const size = sel ? sel.dataset.size : undefined;
+      const sizePrice = sel ? Number(sel.dataset.price) || 0 : 0;
+      const total = Number(item.base_price) + sizePrice;
+      const opts = {};
+      if (size) opts.size = size;
+      cart.push({ name: item.name, qty: 1, opts, total });
       renderCart();
     } else if (e.target.matches('.customize')) {
       const name = e.target.dataset.name;
@@ -62,6 +100,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const name = e.target.dataset.name;
       const item = menu.find(m => m.name === name);
       openDetailsModal(item);
+    } else if (e.target.matches('.badge')) {
+      // size badge clicked: toggle selection within this sizes container
+      const badge = e.target;
+      const container = badge.parentElement;
+      const badges = container.querySelectorAll('.badge');
+      badges.forEach(b => b.classList.remove('selected'));
+      badge.classList.add('selected');
+    } else if (e.target.matches('.chip')) {
+      // chips are discovery-only (visual); toggle selected state for quick feedback
+      e.target.classList.toggle('selected');
     }
   });
 
@@ -85,13 +133,19 @@ document.addEventListener('DOMContentLoaded', () => {
   let previouslyFocused = null;
 
   function openCustomizeModal(item) {
-    activeItem = item;
+    // item may come with `.details` (notes) from the details modal; keep a copy
+    const notes = item.details || '';
+    // preserve a shallow copy so we don't mutate original menu objects
+    const modalItem = Object.assign({}, item);
+    modalItem.details = notes;
+
+    activeItem = modalItem;
     modalBody.innerHTML = '';
     // Sizes
-    if (item.sizes && item.sizes.length) {
+    if (modalItem.sizes && modalItem.sizes.length) {
       const sizeField = document.createElement('div');
       sizeField.innerHTML = '<label>Size:</label>';
-      item.sizes.forEach((sz, i) => {
+      modalItem.sizes.forEach((sz, i) => {
         const id = `size-${i}`;
         sizeField.innerHTML += `<label><input type="radio" name="size" value="${sz.name}" ${i===0? 'checked':''}/> ${sz.name} (+$${sz.price.toFixed(2)})</label>`;
       });
@@ -112,6 +166,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const qty = document.createElement('div');
     qty.innerHTML = '<label>Quantity: <input id="modal-qty" type="number" value="1" min="1" /></label>';
     modalBody.appendChild(qty);
+
+    // Notes (pre-filled when coming from details modal)
+    const notes = document.createElement('div');
+    notes.innerHTML = '<label>Notes / Research:<br/><textarea id="modal-notes" rows="3" style="width:100%;"></textarea></label>';
+    modalBody.appendChild(notes);
+
+    // populate notes if item had them
+    const notesInput = modalBody.querySelector('#modal-notes');
+    if(item.details) notesInput.value = item.details || '';
 
     // Manage focus and accessibility
     previouslyFocused = document.activeElement;
@@ -180,8 +243,12 @@ document.addEventListener('DOMContentLoaded', () => {
   detailsCancel.addEventListener('click', closeDetails);
   detailsCustomize.addEventListener('click', () => {
     if(activeItem){
+      // capture notes locally, close details modal, then open customize with notes preserved
+      const notesEl = document.getElementById('details-notes');
+      const notes = notesEl ? (notesEl.value || '') : (activeItem.details || '');
+      const itemCopy = Object.assign({}, activeItem, { details: notes });
       closeDetails();
-      openCustomizeModal(activeItem);
+      openCustomizeModal(itemCopy);
     }
   });
 
@@ -212,8 +279,13 @@ document.addEventListener('DOMContentLoaded', () => {
         total += Number(cb.dataset.price) || 0;
       }
     });
+
+    // capture notes from modal notes textarea
+    const notesInput = modalBody.querySelector('#modal-notes');
+    const details = notesInput ? (notesInput.value || '') : (activeItem.details || '');
+
     total = total * qty;
-    cart.push({ name: activeItem.name, qty, opts, total });
+    cart.push({ name: activeItem.name, qty, opts, total, details });
     renderCart();
     closeModal();
   });
