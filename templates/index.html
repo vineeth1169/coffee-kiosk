@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Coffee Kiosk - Live</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+  <h1>Coffee Shop Live Dashboard</h1>
+  <section id="order-form">
+    <h2>Create Order</h2>
+    <label>Customer name: <input id="customer" /></label>
+    <div id="menu-grid" class="menu-grid">
+      <!-- Menu cards will be rendered here by JS -->
+    </div>
+    <h3>Your Cart</h3>
+    <ul id="cart"></ul>
+    <button id="submit-order">Submit Order</button>
+  </section>
+
+  <section id="live">
+    <h2>Live Orders</h2>
+    <ul id="orders"></ul>
+    <h3>Totals</h3>
+    <div id="totals">Orders: 0 — Revenue: $0.00</div>
+    <h3>Per-item Sales</h3>
+    <pre id="per-item">{}</pre>
+  </section>
+
+  <!-- Customization modal -->
+  <div id="customize-modal" class="modal" aria-hidden="true" tabindex="-1" data-testid="customize-modal">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button class="modal-close" id="modal-close" aria-label="Close dialog">×</button>
+      <h2 id="modal-title">Customize Item</h2>
+      <div id="modal-body">
+        <!-- Filled by JS -->
+      </div>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn btn-outline" data-testid="modal-cancel">Cancel</button>
+        <button id="modal-add" class="btn btn-primary" data-testid="modal-add">Add to cart</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

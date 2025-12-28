@@ -1,0 +1,15 @@
+requirements.txt
+Flask
+Flask-SocketIO
+Flask-SQLAlchemy
+python-dotenv
+eventlet
+Flask-Migrate
+pymysql
+pytest
+pytest-flask
+pytest-socketio
+requests
+playwright
+pytest-playwright
+pytest-rerunfailures
